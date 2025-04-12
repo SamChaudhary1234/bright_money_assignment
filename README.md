@@ -1,198 +1,141 @@
-# 💳 Bright Credit Loan Management System
+# 🌟 BrightLend: Modern Credit & Loan Management
 
-A Django + Celery-based backend service to manage users, credit scores, loan applications, payments, and statements.
+**A Next-Gen Financial Platform**  
+Powered by Django + Celery + Redis
 
 ---
 
-## 🚀 Setup Instructions
+## 🛠️ Quick Start Guide
 
-### 1. CD into Directory
-
+### Environment Setup
 ```bash
+# 1. Navigate to project
 cd bright_credit
-```
 
-### 2. Create and Activate Virtual Environment
+# 2. Initialize virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-```bash
-python3 -m venv brightenv
-source brightenv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
-
-### 4. Migrate and Seed Database
-
-```bash
+Database Configuration
+bash
+Copy
+# Run migrations
 python manage.py makemigrations
 python manage.py migrate
-```
 
-### 5. Run Server
+# (Optional) Load sample data
+python manage.py loaddata initial_data.json
+Service Initialization
+bash
+Copy
+# Start Django server (port 8001)
+python manage.py runserver 8001
 
-```bash
-./brightenv/bin/python manage.py runserver 8001
-```
-
-### 6. Start Redis (if not running)
-
-```bash
+# Launch Redis (macOS)
 brew services start redis
-```
 
-### 7. Start Celery Worker
-
-```bash
+# Start Celery workers
 celery -A bright_credit worker --loglevel=info
-```
+⏰ Automated Billing System
+Daily Cron Job Implementation
+Manually trigger billing cycle:
 
----
+python
+Copy
+from loan.tasks import process_daily_billing
+process_daily_billing.delay()  # Async execution
+📊 Data Integration
+Transaction File Requirements
+/user_transactions.csv expected in root directory:
 
-## ⚙️ Cron Job - Billing with Celery
+csv
+Copy
+user_id,transaction_date,amount,type,description
+BC-USER-001,2025-03-15,250000,CREDIT,SALARY
+BC-USER-001,2025-03-18,50000,DEBIT,LOAN_EMI
+🔌 API Reference
+User Onboarding
+Endpoint: POST /api/v1/users/register
+Request:
 
-To trigger daily billing manually:
-
-```python
-from loan.tasks import run_billing
-run_billing.delay()
-```
-
----
-
-## 📂 Required File: `user_transaction.csv`
-
-Place it in the root directory. Format:
-
-```csv
-aadhar_id,date,amount,transaction_type
-111122223333,2025-03-01,600000,CREDIT
-111122223333,2025-03-02,50000,DEBIT
-```
-
----
-
-## 📮 API Endpoints
-
-### 1. **Register User**
-
-**POST** `/api/register-user/`
-
-#### Request:
-
-```json
+json
+Copy
 {
-  "aadhar_id": "999900001111",
-  "name": "Test User",
-  "email": "test@example.com",
-  "annual_income": "2000000"
+  "aadhar_id": "888877776666",
+  "name": "Rahul Sharma",
+  "email": "rahul@brightlend.com",
+  "annual_income": 1800000,
+  "employment_type": "SALARIED"
 }
-```
+Response:
 
-#### Success Response:
-
-```json
+json
+Copy
 {
-  "unique_user_id": "uuid-abc-123..."
+  "user_id": "BC-USER-009",
+  "welcome_message": "Account activated successfully",
+  "initial_credit_score": 720
 }
-```
+Credit Assessment
+Endpoint: GET /api/v1/credit/scores?user_id=BC-USER-009
+Response:
 
----
-
-### 2. **Get Credit Score**
-
-**GET** `/api/credit-score/?unique_user_id=<uuid>`
-
-#### Success Response:
-
-```json
+json
+Copy
 {
-  "unique_user_id": "uuid...",
-  "credit_score": 480
+  "score": 720,
+  "factors": {
+    "payment_history": "EXCELLENT",
+    "credit_utilization": "LOW_RISK",
+    "credit_age": "GOOD"
+  }
 }
-```
+Loan Services
+1. Application
+POST /api/v1/loans/apply
 
----
-
-### 3. **Apply for Loan**
-
-**POST** `/api/apply-loan/`
-
-#### Request:
-
-```json
+json
+Copy
 {
-  "unique_user_id": "uuid...",
-  "loan_type": "CREDIT_CARD",
-  "loan_amount": 4000,
-  "interest_rate": 14,
-  "term_period": 4,
-  "disbursement_date": "2025-03-27"
+  "user_id": "BC-USER-009",
+  "product": "PERSONAL_LOAN",
+  "amount": 500000,
+  "tenure_months": 24,
+  "purpose": "HOME_RENOVATION"
 }
-```
+2. Payment Processing
+POST /api/v1/loans/payments
 
-#### Success Response:
-
-```json
+json
+Copy
 {
-  "loan_id": 3,
-  "due_dates": [
-    { "date": "2025-04-26", "amount_due": "1560.00" },
-    { "date": "2025-05-26", "amount_due": "1560.00" },
-    ...
-  ]
+  "loan_id": "LN-2025-0456",
+  "amount": 24500,
+  "payment_method": "UPI",
+  "reference_id": "PAY-789XYZ"
 }
-```
+Account Statements
+Endpoint: GET /api/v1/statements?loan_id=LN-2025-0456
+Response:
 
----
-
-### 4. **Make Payment**
-
-**POST** `/api/make-payment/`
-
-#### Request:
-
-```json
+json
+Copy
 {
-  "loan_id": 3,
-  "amount": 1560,
-  "payment_date": "2025-04-26"
-}
-```
-
-#### Success Response:
-
-```json
-{
-  "message": "EMI of ₹1560 paid successfully for due date 2025-04-26.",
-  "transaction_id": "uuid..."
-}
-```
-
----
-
-### 5. **Get Loan Statement**
-
-**GET** `/api/get-statement/?loan_id=3`
-
-#### Success Response:
-
-```json
-{
-  "past_transactions": [
+  "loan_summary": {
+    "principal_paid": 125600,
+    "interest_paid": 45600,
+    "outstanding": 374400
+  },
+  "payment_history": [
     {
-      "date": "2025-04-26",
-      "principal": 1000,
-      "interest": 560,
-      "amount_paid": 1560
+      "due_date": "2025-04-05",
+      "status": "PAID",
+      "breakdown": {
+        "principal": 20833,
+        "interest": 3667
+      }
     }
-  ],
-  "upcoming_transactions": [
-    { "date": "2025-05-26", "amount_due": "1560.00" },
-    ...
   ]
 }
-```
